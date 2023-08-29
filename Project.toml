@@ -3,15 +3,16 @@ uuid = "99c1d5ce-7c61-4a25-a107-a5ade2e2a8e4"
 authors = ["Anton Smirnov <tonysmn97@gmail.com>"]
 version = "0.1.0"
 
-[weakdeps]
-AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
-CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
+[weakdeps]
+AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 
 [compat]
 AMDGPU = "0.5"

@@ -86,3 +86,58 @@ end
         @test_throws ArgumentError ge(x, θ)
     end
 end
+
+@testset "NN: T=$T" for T in (Float32,)
+    n = 5
+    @testset "Glorot" begin
+        θ = NerfUtils.glorot_uniform(BACKEND, T, (3, 4))
+        @test θ isa AT
+        @test size(θ) == (3, 4)
+        @test eltype(θ) == T
+    end
+    @testset "Dense" begin
+        m = Dense{T}(1 => 2, relu)
+        θ = NerfUtils.init(m, BACKEND)
+        @test θ isa AT
+        @test size(θ) == (2, 1)
+        @test eltype(θ) == T
+
+        x = adapt(BACKEND, rand(T, 1, n))
+        y = m(x, θ)
+        @test y isa AT
+        @test size(y) == (2, n)
+        @test eltype(y) == T
+    end
+    @testset "Chain" begin
+        c = Chain(Dense{T}(1 => 2, relu), Dense{T}(2 => 3, relu))
+        θ = NerfUtils.init(c, BACKEND)
+        @test length(θ) == 2
+        @test θ[1] isa AT
+        @test θ[2] isa AT
+        @test eltype(θ[1]) == T
+        @test eltype(θ[2]) == T
+
+        x = adapt(BACKEND, rand(T, 1, n))
+        y = c(x, θ)
+        @test y isa AT
+        @test size(y) == (3, n)
+        @test eltype(y) == T
+    end
+    @testset "Adam" begin
+        m = Dense{T}(1 => 2, relu)
+        θ = NerfUtils.init(m, BACKEND)
+        opt = Adam(BACKEND, θ)
+
+        x = adapt(BACKEND, rand(T, 1, n))
+        ∇ = Zygote.gradient(θ) do θ
+            sum(m(x, θ))
+        end
+
+        @test opt.current_step == 0
+
+        θ_original = copy(θ)
+        NerfUtils.step!(opt, θ, ∇[1]; dispose=true)
+        @test θ ≉ θ_original
+        @test opt.current_step == 1
+    end
+end
