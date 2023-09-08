@@ -10,11 +10,13 @@ struct GridEncoding{O, R}
     n_params::UInt32
     base_resolution::UInt32
     scale::Float32
+    align_corners::Bool
 end
 
 function GridEncoding(
     kab; n_dims::Int = 3, n_levels::Int = 16, scale::Float32 = 1.5f0,
     base_resolution::Int = 16, n_features::Int = 2, hashmap_size::Int = 19,
+    align_corners::Bool = true,
 )
     n_levels < 34 || throw(ArgumentError(
         "`n_levels` must be < `34`, instead: `$n_levels`."))
@@ -32,7 +34,7 @@ function GridEncoding(
     for level in 1:n_levels
         level_scale::Float32 = compute_scale(
             UInt32(level), log_scale, UInt32(base_resolution))
-        resolution = ceil(level_scale) + 1 # + 1 for align corners
+        resolution = ceil(level_scale) + (align_corners ? 0 : 1)
         resolutions[level] = resolution
 
         level_params::UInt32 = min(resolution^n_dims, max_params)
@@ -49,7 +51,7 @@ function GridEncoding(
         adapt(kab, offset_table), adapt(kab, resolutions),
         UInt32(n_dims), UInt32(n_features),
         UInt32(n_levels), UInt32(n_params),
-        UInt32(base_resolution), scale)
+        UInt32(base_resolution), scale, align_corners)
 end
 
 KernelAbstractions.get_backend(ge::GridEncoding) = get_backend(ge.offset_table)
@@ -57,7 +59,8 @@ KernelAbstractions.get_backend(ge::GridEncoding) = get_backend(ge.offset_table)
 function _kernel_params(ge::GridEncoding)
     NPD = Val{Int64(ge.n_dims)}()
     NFPL = Val{Int64(ge.n_features)}()
-    NPD, NFPL
+    ALG = Val(ge.align_corners)
+    NPD, NFPL, ALG
 end
 
 function init(ge::GridEncoding)
@@ -118,7 +121,7 @@ function ∇grid_input(ge::GridEncoding, ∂L∂y, ∂y∂x)
     n, L = size(∂y∂x, 4), Val{ge.n_levels}()
     ∂L∂x = allocate(kab, Float32, Int64.((ge.n_dims, n)))
     ∇grid_kernel_input!(kab)(
-        ∂L∂x, ∂L∂y, ∂y∂x, _kernel_params(ge)..., L; ndrange=n)
+        ∂L∂x, ∂L∂y, ∂y∂x, _kernel_params(ge)[1:2]..., L; ndrange=n)
     ∂L∂x
 end
 

@@ -1,7 +1,7 @@
 @inline function encode_grid_position(
     θ, hashmap_size::UInt32, resolution::UInt32,
     δposition::MVector{NPD, Float32}, grid_position::MVector{NPD, UInt32},
-    ::Val{NPD}, ::Val{NFPL},
+    ::Val{NPD}, ::Val{NFPL}, align_corners,
 ) where {NPD, NFPL}
     result = zeros(MVector{NFPL, Float32})
     local_grid_position = MVector{NPD, UInt32}(undef)
@@ -19,7 +19,7 @@
         end
 
         hash_index = grid_index(
-            local_grid_position, hashmap_size, resolution)
+            local_grid_position, hashmap_size, resolution, align_corners)
         for f in UnitRange{UInt32}(UInt32(1), UInt32(NFPL))
             @inbounds result[f] += ω * θ[f, hash_index]
         end
@@ -31,7 +31,7 @@ end
     θ, hashmap_size::UInt32, resolution::UInt32, scale::Float32,
     δposition::MVector{NPD, Float32}, grid_position::MVector{NPD, UInt32},
     ∇position::MVector{NPD, Float32},
-    ::Val{NPD}, ::Val{NFPL},
+    ::Val{NPD}, ::Val{NFPL}, align_corners,
 ) where {NPD, NFPL}
     grads = zeros(MMatrix{NPD, NFPL, Float32})
     for grad_dim in 1:NPD, idx in 0x0:((UInt32(1) << (NPD - 0x1)) - 0x1)
@@ -52,11 +52,11 @@ end
 
         local_grid_position[grad_dim] = grid_position[grad_dim]
         hash_index_left = grid_index(
-            local_grid_position, hashmap_size, resolution)
+            local_grid_position, hashmap_size, resolution, align_corners)
 
         local_grid_position[grad_dim] = grid_position[grad_dim] + 0x1
         hash_index_right = grid_index(
-            local_grid_position, hashmap_size, resolution)
+            local_grid_position, hashmap_size, resolution, align_corners)
 
         for f in 1:NFPL
             @inbounds δ = θ[f, hash_index_right] - θ[f, hash_index_left]
@@ -78,13 +78,15 @@ end
 
 @inline ∇smoothstep(x::Float32) = 6f0 * x * (1f0 - x)
 
-@inline function to_grid_position(x::MVector{NPD, Float32}, scale::Float32) where NPD
+@inline function to_grid_position(
+    x::MVector{NPD, Float32}, scale::Float32, align_corners::Val{ALG},
+) where {NPD, ALG}
     δposition = MVector{NPD, Float32}(undef)
     ∇position = MVector{NPD, Float32}(undef)
     grid_position = MVector{NPD, UInt32}(undef)
 
     for dim in UnitRange{UInt32}(UInt32(1), UInt32(NPD))
-        δposition[dim] = x[dim] * scale + 0.5f0
+        δposition[dim] = x[dim] * scale + (ALG ? 0f0 : 0.5f0)
         tmp = floor(δposition[dim])
         δposition[dim] -= tmp
         grid_position[dim] = unsafe_trunc(UInt32, tmp)
@@ -106,15 +108,16 @@ end
 end
 
 @inline function grid_index(
-    grid_pos::MVector{NPD, UInt32}, hashmap_size::UInt32, resolution::UInt32,
-) where NPD
+    grid_pos::MVector{NPD, UInt32}, hashmap_size::UInt32,
+    resolution::UInt32, align_corners::Val{ALG},
+) where {NPD, ALG}
     stride = UInt32(1)
     index = UInt32(0)
 
     for dim in UnitRange{UInt32}(UInt32(1), UInt32(NPD))
         stride > hashmap_size && break
         index += grid_pos[dim] * stride
-        stride *= resolution
+        stride *= resolution + (ALG ? UInt32(0x0) : UInt32(0x1))
     end
 
     if stride > hashmap_size

@@ -1,7 +1,8 @@
 @kernel function grid_kernel!(
     y, ∂y∂x, @Const(x), @Const(grid), @Const(offset_table),
-    npd::Val{NPD}, nfpl::Val{NFPL}, base_resolution::UInt32, log_scale::Float32,
-) where {NPD, NFPL}
+    npd::Val{NPD}, nfpl::Val{NFPL}, align_corners::Val{ALG},
+    base_resolution::UInt32, log_scale::Float32,
+) where {NPD, NFPL, ALG}
     i::UInt32, level::UInt32 = @index(Global, NTuple)
     @inbounds θ = @view(grid[:, (offset_table[level] + 0x1):offset_table[level + 0x1]])
     hashmap_size::UInt32 = unsafe_trunc(UInt32, size(θ, 2))
@@ -9,11 +10,11 @@
     scale = compute_scale(level, log_scale, base_resolution)
     resolution = unsafe_trunc(UInt32, ceil(scale)) + 0x1
     @inbounds δposition, grid_position, ∇position = to_grid_position(
-        extract_npd(@view(x[:, i]), npd), scale)
+        extract_npd(@view(x[:, i]), npd), scale, align_corners)
 
     result = encode_grid_position(
         θ, hashmap_size, resolution,
-        δposition, grid_position, npd, nfpl)
+        δposition, grid_position, npd, nfpl, align_corners)
     for f in UnitRange{UInt32}(UInt32(1), UInt32(NFPL))
         @inbounds y[f, level, i] = result[f]
     end
@@ -22,7 +23,7 @@
     if !isnothing(∂y∂x)
         grads = encoding_∂y∂x(
             θ, hashmap_size, resolution, scale,
-            δposition, grid_position, ∇position, npd, nfpl)
+            δposition, grid_position, ∇position, npd, nfpl, align_corners)
         for f in UnitRange{UInt32}(UInt32(1), UInt32(NFPL))
             for d in UnitRange{UInt32}(UInt32(1), UInt32(NPD))
                 @inbounds ∂y∂x[d, f, level, i] = grads[d, f]
@@ -33,9 +34,9 @@ end
 
 @kernel function ∇grid_kernel!(
     ∂grid, @Const(∂L∂y), @Const(x), @Const(offset_table),
-    npd::Val{NPD}, ::Val{NFPL},
+    npd::Val{NPD}, ::Val{NFPL}, align_corners::Val{ALG},
     base_resolution, log_scale::Float32,
-) where {NPD, NFPL}
+) where {NPD, NFPL, ALG}
     i::UInt32, level::UInt32 = @index(Global, NTuple)
     @inbounds offset_start = offset_table[level]
     @inbounds hashmap_size = offset_table[level + 0x1] - offset_start
@@ -43,7 +44,7 @@ end
     scale = compute_scale(level, log_scale, base_resolution)
     grid_resolution = unsafe_trunc(UInt32, ceil(scale)) + 0x1
     @inbounds δposition, grid_position, _ = to_grid_position(
-        extract_npd(@view(x[:, i]), npd), scale)
+        extract_npd(@view(x[:, i]), npd), scale, align_corners)
 
     s∂L∂y = MVector{NFPL, Float32}(undef)
     for f in UnitRange{UInt32}(UInt32(1), UInt32(NFPL))
@@ -64,7 +65,7 @@ end
         end
 
         hash_index = offset_start + grid_index(
-            grid_pos_local, hashmap_size, grid_resolution)
+            grid_pos_local, hashmap_size, grid_resolution, align_corners)
         @inbounds for f in UnitRange{UInt32}(UInt32(1), UInt32(NFPL))
             @atomic ∂grid[f, hash_index] += s∂L∂y[f] * ω
         end
