@@ -49,7 +49,7 @@ function GridEncoding(
 
     if store_level_ids
         level_ids = Vector{Int8}(undef, offset)
-        for l in 1:(n_levels - 1)
+        for l in 1:n_levels
             level_ids[(1 + offset_table[l]):offset_table[l + 1]] .= l
         end
     else

@@ -80,13 +80,15 @@ end
 
     @testset "Level ids" begin
         n_levels = 3
-
         ge = GridEncoding(BACKEND; n_levels, store_level_ids=true)
-        @test typeof(ge.level_ids) <: AbstractVector{Int8}
-
         θ = NerfUtils.init(ge)
 
+        @test typeof(ge.level_ids) <: AbstractVector{Int8}
+
         level_ids = Array(ge.level_ids)
+        @test length(level_ids) == size(θ, 2)
+        @test length(unique(level_ids)) == ge.n_levels
+
         offsets = Array(ge.offset_table)
         @test offsets[end] == size(θ, 2)
 
