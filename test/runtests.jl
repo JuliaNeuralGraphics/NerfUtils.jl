@@ -47,6 +47,8 @@ end
     n = 3
     @testset "Input dim: $n_dims, N features: $n_features, N levels: $n_levels" for n_dims in 1:3, n_features in 1:4, n_levels in (1, 4, 16)
         ge = GridEncoding(BACKEND; n_dims, n_features, n_levels)
+        @test ge.level_ids ≡ nothing
+
         θ = NerfUtils.init(ge)
 
         x = adapt(BACKEND, rand(Float32, (n_dims, n)))
@@ -74,6 +76,23 @@ end
         @test length(∇) == 2
         @test size(∇[1]) == size(θ)
         @test size(∇[2]) == (n_dims, n)
+    end
+
+    @testset "Level ids" begin
+        n_levels = 3
+
+        ge = GridEncoding(BACKEND; n_levels, store_level_ids=true)
+        @test typeof(ge.level_ids) <: AbstractVector{Int8}
+
+        θ = NerfUtils.init(ge)
+
+        level_ids = Array(ge.level_ids)
+        offsets = Array(ge.offset_table)
+        @test offsets[end] == size(θ, 2)
+
+        for l in (n_levels - 1)
+            @test all(l .== level_ids[(1 + offsets[l]):offsets[l + 1]])
+        end
     end
 
     @testset "Invalid input arguments" begin

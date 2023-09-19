@@ -1,9 +1,10 @@
 include("grid_utils.jl")
 include("grid_kernels.jl")
 
-struct GridEncoding{O, R}
+struct GridEncoding{O, R, L}
     offset_table::O
     resolutions::R
+    level_ids::L
     n_dims::UInt32
     n_features::UInt32
     n_levels::UInt32
@@ -16,7 +17,7 @@ end
 function GridEncoding(
     kab; n_dims::Int = 3, n_levels::Int = 16, scale::Float32 = 1.5f0,
     base_resolution::Int = 16, n_features::Int = 2, hashmap_size::Int = 19,
-    align_corners::Bool = true,
+    align_corners::Bool = true, store_level_ids::Bool = false,
 )
     n_levels < 34 || throw(ArgumentError(
         "`n_levels` must be < `34`, instead: `$n_levels`."))
@@ -46,9 +47,18 @@ function GridEncoding(
     end
     offset_table[end] = offset
 
+    if store_level_ids
+        level_ids = Vector{Int8}(undef, offset)
+        for l in 1:(n_levels - 1)
+            level_ids[(1 + offset_table[l]):offset_table[l + 1]] .= l
+        end
+    else
+        level_ids = nothing
+    end
+
     n_params = offset * n_features
     GridEncoding(
-        adapt(kab, offset_table), adapt(kab, resolutions),
+        adapt(kab, offset_table), adapt(kab, resolutions), adapt(kab, level_ids),
         UInt32(n_dims), UInt32(n_features),
         UInt32(n_levels), UInt32(n_params),
         UInt32(base_resolution), scale, align_corners)
