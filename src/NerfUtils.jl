@@ -15,6 +15,7 @@ const IG = Val{:IG}()
 
 import KernelAbstractions as KA
 
+include("colmap.jl")
 include("encoding/grid_encoding.jl")
 include("nn/nn.jl")
 include("nn/adam.jl")
