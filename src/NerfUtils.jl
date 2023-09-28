@@ -3,6 +3,7 @@ module NerfUtils
 export GridEncoding, IG
 export Dense, Chain, Adam
 export relu, softplus, sigmoid
+export CameraIntrinsics, Camera
 
 using Adapt
 using ChainRulesCore
@@ -22,5 +23,6 @@ include("nn/nn.jl")
 include("nn/adam.jl")
 
 include("render/intrinsics.jl")
+include("render/camera.jl")
 
 end
