@@ -9,7 +9,9 @@ using Adapt
 using ChainRulesCore
 using KernelAbstractions
 using KernelAbstractions: @atomic
+using Quaternions
 using Random
+using Rotations
 using StaticArrays
 
 import KernelAbstractions as KA
@@ -24,5 +26,6 @@ include("nn/adam.jl")
 
 include("render/intrinsics.jl")
 include("render/camera.jl")
+include("render/keyframe.jl")
 
 end
