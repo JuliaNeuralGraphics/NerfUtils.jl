@@ -11,13 +11,16 @@ using KernelAbstractions: @atomic
 using Random
 using StaticArrays
 
-const IG = Val{:IG}()
-
 import KernelAbstractions as KA
+
+const IG = Val{:IG}()
+const Maybe{T} = Union{T, Nothing}
 
 include("colmap.jl")
 include("encoding/grid_encoding.jl")
 include("nn/nn.jl")
 include("nn/adam.jl")
+
+include("render/intrinsics.jl")
 
 end
