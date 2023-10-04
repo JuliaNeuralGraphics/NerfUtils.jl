@@ -23,7 +23,11 @@ struct CameraIntrinsics{D <: Maybe{SVector{4, Float32}}}
         focal::SVector{2, Float32}, principal::SVector{2, Float32},
         resolution::SVector{2, UInt32},
     )
-        # TODO check principal is normalized
+        ((0 ≤ minimum(principal) ≤ 1) &&
+            (0 ≤ maximum(principal) ≤ 1)) || throw(ArgumentError("""
+            `principal`=$principal must be normalized by the resolution
+            and in [0, 1] range.
+            """))
         has_distortion = distortion ≡ nothing ? false : !iszero(distortion)
         new{has_distortion ? SVector{4, Float32} : Nothing}(
             has_distortion ? distortion : nothing,

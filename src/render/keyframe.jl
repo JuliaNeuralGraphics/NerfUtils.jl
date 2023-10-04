@@ -1,3 +1,6 @@
+"""
+Camera pose described by a quaternion `q` and position `t`.
+"""
 struct CameraKeyframe
     q::QuaternionF32
     t::SVector{3, Float32}
@@ -25,7 +28,15 @@ function Base.:+(c1::CameraKeyframe, c2::CameraKeyframe)
     CameraKeyframe(c1.q + q, c1.t .+ c2.t)
 end
 
-# Cubic b-spline.
+"""
+    spline(
+        t::Float32,
+        k0::CameraKeyframe, k1::CameraKeyframe,
+        k2::CameraKeyframe, k3::CameraKeyframe)
+
+Cubic B-spline between 4 `CameraKeyframe`s.
+Vary `t` from `[0, 1]` to compute positions along a spline from `k0` to `k3`.
+"""
 function spline(
     t::Float32,
     k0::CameraKeyframe, k1::CameraKeyframe,

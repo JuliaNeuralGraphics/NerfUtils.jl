@@ -1,3 +1,10 @@
+"""
+    function Dense(
+        mapping::Pair{Int64, Int64}, activation::F = identity,
+    ) where F
+
+Regular dense layer with activation.
+"""
 struct Dense{T, F}
     activation::F
     in_channels::Int64
@@ -26,17 +33,37 @@ end
 
 precision(::Dense{T, F}) where {T, F} = T
 
+"""
+    init(d::Dense, kab)
+
+Create parameters for the `Dense` layer on the given backend `kab`.
+"""
 function init(d::Dense, kab)
     glorot_uniform(kab, precision(d), (d.out_channels, d.in_channels))
 end
 
+"""
+    reset!(::Dense, θ)
+
+Reinitialize parameters `θ` in-place.
+"""
 reset!(::Dense, θ) = glorot_uniform!(θ)
 
+"""
+    Chain(layers...)
+
+Sequentially chain multiple `layers`.
+"""
 struct Chain{L}
     layers::L
     Chain(layers...) = new{typeof(layers)}(layers)
 end
 
+"""
+    init(c::Chain, kab)
+
+Create parameters for the `Chain` on the given backend `kab`.
+"""
 function init(c::Chain, kab)
     recursive_init((), first(c.layers), Base.tail(c.layers), kab)
 end
@@ -48,6 +75,11 @@ function recursive_init(θ, l, ::Tuple{}, kab)
     (θ..., init(l, kab))
 end
 
+"""
+    reset!(c::Chain, θ)
+
+Reinitialize chain parameters in-place.
+"""
 function reset!(c::Chain, θ)
     foreach(l -> reset!(l[1], l[2]), zip(c.layers, θ))
 end

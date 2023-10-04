@@ -1,6 +1,9 @@
 """
+    Camera(projection, intrinsics::CameraIntrinsics)
+
 Camera maintains original focal length,
-since model is using it during training.
+since the model was trained on a specific value of it,
+thus we want to preserve the original aspect.
 
 # Arguments:
 
@@ -35,10 +38,20 @@ function set_projection!(
     c.projection[1:3, 4] .= translation
 end
 
+"""
+    shift!(c::Camera, relative)
+
+Shift camera position by a `relative` value.
+"""
 function shift!(c::Camera, relative)
     c.projection[1:3, 4] .+= @view(c.projection[1:3, 1:3]) * relative
 end
 
+"""
+    rotate!(c::Camera, rotation)
+
+Apply rotation to the camera.
+"""
 function rotate!(c::Camera, rotation)
     c.projection[1:3, 1:3] .= rotation * @view(c.projection[1:3, 1:3])
 end
@@ -53,6 +66,12 @@ view_pos(c::Camera) = SVector{3, Float32}(@view(c.projection[1:3, 4])...)
 
 look_at(c::Camera) = view_pos(c) .+ view_dir(c)
 
+"""
+    set_resolution!(c::Camera; width::Int, height::Int)
+
+Change resolution of the camera.
+Preserves original focal length aspect, scaling it instead.
+"""
 function set_resolution!(c::Camera; width::Int, height::Int)
     resolution = SVector{2, UInt32}(width, height)
     scale::Float32 = resolution[2] / c.original_resolution[2]

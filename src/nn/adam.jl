@@ -1,3 +1,10 @@
+"""
+    Adam(kab, θ; kwargs...)
+
+Adam optimizer.
+
+`θ` must be either plain array or a tuple (or named tuple).
+"""
 Base.@kwdef mutable struct Adam{T}
     μ::Vector{T}
     ν::Vector{T}
@@ -27,6 +34,11 @@ function _add_moments!(μ, ν, θ, kab)
     push!(ν, KA.zeros(kab, Float32, length(θ)))
 end
 
+"""
+    reset!(opt::Adam)
+
+Reset the optimizer state.
+"""
 function reset!(opt::Adam)
     fill!.(opt.μ, 0f0)
     fill!.(opt.ν, 0f0)
@@ -34,7 +46,7 @@ function reset!(opt::Adam)
 end
 
 """
-    step!(opt::Adam, θ, ∇; dispose::Bool = true)
+    step!(opt::Adam, θ, ∇; dispose::Bool)
 
 Apply update rule to parameters `θ` with gradients `∇`.
 
