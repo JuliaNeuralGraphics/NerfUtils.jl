@@ -1,5 +1,7 @@
 # NerfUtils.jl
 
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://julianeuralgraphics.github.io/NerfUtils.jl/dev)
+
 Reusable NeRF components
 
 ## Test
