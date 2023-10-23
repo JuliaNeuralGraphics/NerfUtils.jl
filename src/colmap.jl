@@ -57,7 +57,7 @@ end
 function load_cameras_data(camfile::String)
     cams = Dict{Int, Camera}()
     open(camfile) do io
-        n_cams = read(io, Int64)
+        n_cams = read(io, UInt64)
         for _ in 1:n_cams
             cam_id, cam_type, w, h = read.(io, (Int32, Int32, Int64, Int64))
             n_params = cam_type_params(cam_type)
@@ -81,7 +81,7 @@ function load_images_data(imfile::String)
 
     images = OrderedDict{Int32, Image}()
     open(imfile) do io
-        n_images = read(io, Int64)
+        n_images = read(io, UInt64)
         for _ in 1:n_images
             image_id = read(io, Int32)
             q = [read(io, Float64) for _ in 1:4]
@@ -102,6 +102,40 @@ function load_images_data(imfile::String)
         end
     end
     return images
+end
+
+function load_points_data(points_file::String)
+    open(points_file) do io
+        n_points = read(io, UInt64)
+
+        points_3d = Matrix{Float32}(undef, 3, n_points)
+        points_ids = Vector{UInt64}(undef, n_points) # point-to-image-id
+        points_colors = Matrix{UInt8}(undef, 3, n_points)
+        points_errors = Vector{Float64}(undef, n_points)
+
+        point_id_to_idx = Dict{UInt64, UInt64}()
+        # Point ID -> [(image ID, point 2d ID), ...]
+        point_id_to_images = Dict{UInt64, Matrix{UInt32}}()
+
+        for i in 1:n_points
+            points_ids[i] = read(io, UInt64)
+            points_3d[:, i] .= [read(io, Float64) for _ in 1:3]
+            points_colors[:, i] .= [read(io, UInt8) for _ in 1:3]
+            points_errors[i] = read(io, Float64)
+
+            # Load (image ID, point 2d ID) pairs.
+            n_pairs = read(io, UInt64)
+            pairs = reshape([read(io, UInt32) for _ in 1:(2 * n_pairs)], 2, n_pairs)
+
+            # Point ID -> to its id in other arrays (poitns_3d, etc.).
+            point_id_to_idx[points_ids[i]] = i
+            point_id_to_images[points_ids[i]] = pairs
+        end
+
+        return (;
+            points_3d, points_ids, points_colors, points_errors,
+            point_id_to_idx, point_id_to_images)
+    end
 end
 
 end
