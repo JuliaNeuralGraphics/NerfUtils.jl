@@ -1,3 +1,7 @@
+_eltype(θ::T) where T <: Union{Tuple, NamedTuple} = _eltype(first(θ))
+_eltype(θ::T) where T <: AbstractVector = T
+_eltype(θ::T) where T = _eltype(reshape(θ, :))
+
 """
     Adam(kab, θ; kwargs...)
 
@@ -20,7 +24,8 @@ end
 KernelAbstractions.get_backend(opt::Adam) = get_backend(first(opt.μ))
 
 function Adam(kab, θ; kwargs...)
-    μ, ν = [], [] # FIXME unstable
+    T = _eltype(θ)
+    μ, ν = T[], T[]
     _add_moments!(μ, ν, θ, kab)
     Adam(; μ, ν, kwargs...)
 end
