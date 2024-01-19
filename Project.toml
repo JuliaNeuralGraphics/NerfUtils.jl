@@ -1,7 +1,7 @@
 name = "NerfUtils"
 uuid = "99c1d5ce-7c61-4a25-a107-a5ade2e2a8e4"
 authors = ["Anton Smirnov <tonysmn97@gmail.com>"]
-version = "0.1.4"
+version = "0.1.5"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
