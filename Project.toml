@@ -1,7 +1,7 @@
 name = "NerfUtils"
 uuid = "99c1d5ce-7c61-4a25-a107-a5ade2e2a8e4"
 authors = ["Anton Smirnov <tonysmn97@gmail.com>"]
-version = "0.1.6"
+version = "0.2.0"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
@@ -18,13 +18,13 @@ AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 
 [compat]
-AMDGPU = "0.9.3"
+AMDGPU = "1"
 Adapt = "4"
 CUDA = "5"
-ChainRulesCore = "1.16"
+ChainRulesCore = "1.24"
 KernelAbstractions = "0.9"
 OrderedCollections = "1.6"
 Quaternions = "0.7"
-Rotations = "1.6"
-StaticArrays = "1.6"
-julia = "1.9"
+Rotations = "1.7"
+StaticArrays = "1.9"
+julia = "1.10"
