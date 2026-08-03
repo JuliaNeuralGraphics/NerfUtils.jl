@@ -14,7 +14,6 @@ Base.@kwdef mutable struct Adam{T}
     ν::Vector{T}
     current_step::UInt32 = UInt32(0)
 
-    # Hyperparameters.
     lr::Float32 = 1f-2
     β1::Float32 = 0.9f0
     β2::Float32 = 0.999f0
@@ -79,41 +78,35 @@ function _step!(opt::Adam, θ::T, ∇::G, i; dispose::Bool) where {
 end
 
 function _step!(opt::Adam, θ::T, ∇::T, i; dispose::Bool) where T <: AbstractArray
-    # TODO add check flag
-    # @assert !any(isnan.(θ)) "NaN parameters of size $(size(θ))"
-    # @assert !any(isnan.(∇)) "NaN parameters of size $(size(∇))"
-
     size(θ) == size(∇) || throw(ArgumentError(
         "Shape of parameters and gradients must be the same, " *
         "instead: `$(size(θ))` vs `$(size(∇))`."))
 
-    # Debiasing.
     adam_step_kernel!(get_backend(opt))(
         opt.μ[i], opt.ν[i], θ, ∇,
         opt.lr, opt.β1, opt.β2, opt.ϵ, opt.current_step; ndrange=length(θ))
 
     dispose && KA.unsafe_free!(∇)
-
     return i + 1
 end
 
-@kernel function adam_step_kernel!(
+@kernel cpu=false inbounds=true function adam_step_kernel!(
     μ, ν, Θ, @Const(∇), lr::Float32,
     β1::Float32, β2::Float32, ϵ::Float32, step::UInt32,
 )
     i = @index(Global)
-    @inbounds ∇ᵢ = ∇[i]
+    ∇ᵢ = ∇[i]
     ∇ᵢ² = ∇ᵢ^2
 
-    @inbounds μᵢ = μ[i] = β1 * μ[i] + (1f0 - β1) * ∇ᵢ
-    @inbounds νᵢ = ν[i] = β2 * ν[i] + (1f0 - β2) * ∇ᵢ²
+    μᵢ = μ[i] = β1 * μ[i] + (1f0 - β1) * ∇ᵢ
+    νᵢ = ν[i] = β2 * ν[i] + (1f0 - β2) * ∇ᵢ²
 
     # Debiasing.
     μ̂ = μᵢ / (1f0 - β1^step)
     ν̂ = νᵢ / (1f0 - β2^step)
 
-    @inbounds ωᵢ = Θ[i]
-    @inbounds Θ[i] = ωᵢ - lr * μ̂ / (√ν̂ + ϵ)
+    ωᵢ = Θ[i]
+    Θ[i] = ωᵢ - lr * μ̂ / (√ν̂ + ϵ)
 end
 
 function exp_scheduler(lr_start::Float32, lr_end::Float32, steps::Int)
